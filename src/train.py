@@ -68,28 +68,12 @@ def train_model(model, criterion, optimizer, train_dataloader, val_dataloader, n
 
             step += 1
 
-
-def test(ratings):
-
-    l = len(ratings)
-    ans = 0
-    left, right = 0, 1
-
-    while right < l:
-        if ratings[right] - ratings[right - 1] == 1:
-            right += 1
-        else:
-            diff = right - left
-            ans += (diff + 1) * diff / 2
-            left = right
-            right += 1
-
-    return ans
+        val_loss, acc = val_model(model, val_dataloader)
+        log_writer.add_scalar(f"val loss", val_loss, global_step=epoch)
+        log_writer.add_scalar(f"val acc", acc, global_step=epoch)
 
 
 if __name__ == "__main__":
-
-    test([])
 
     train_csv = pd.read_csv("../data/train.csv")
     train, val = train_test_split(train_csv, test_size=0.2, random_state=66)
@@ -97,19 +81,20 @@ if __name__ == "__main__":
     train_dataset = StripDataset({"n_images": 16}, train)
     val_dataset = StripDataset({"n_images": 16}, val)
 
-    train_dataloader = DataLoader(train_dataset, batch_size=1)
+    train_dataloader = DataLoader(train_dataset, batch_size=1, num_workers=8)
+    val_dataloader = DataLoader(val_dataset, batch_size=1, num_workers=8)
     model = StripEfficientNet("efficientnet-b4", False, None, in_channels=48, num_classes=2)
     writer = SummaryWriter("../train_log/efficientnet_b4")
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.AdamW(model.model.parameters(), lr=1e-4)
+    optimizer = torch.optim.AdamW(model.model.parameters(), lr=1e-5)
 
     train_model(model=model,
                 criterion=criterion,
                 optimizer=optimizer,
                 train_dataloader=train_dataloader,
-                val_dataloader=None,
-                num_epochs=1,
+                val_dataloader=val_dataloader,
+                num_epochs=5,
                 log_writer=writer)
 
     print("Finished")
