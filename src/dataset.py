@@ -27,7 +27,8 @@ class StripDataset(Dataset):
             if self.transform:
                 image = self.transform(image=image)["image"]
             images.append(torch.tensor(image))
-        images = torch.cat(images, dim=2)   # There is a depth dimension originally, I cat the dimension with the RGB channel
-        images = images.reshape([48, 1024, 1024])
-        label = torch.tensor(label2int[self.labels[idx]])#.long()
+        # images = torch.cat(images, dim=2)   # There is a depth dimension originally, I cat the dimension with the RGB channel
+        # images = images.reshape([48, 1024, 1024])
+        images = torch.stack(images, dim=0).view(self.cfg["n_images"], 3, 1024, 1024)
+        label = torch.tensor(label2int[self.labels[idx]])
         return images, label

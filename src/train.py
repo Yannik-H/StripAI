@@ -8,11 +8,11 @@ from torch.optim import lr_scheduler
 import torch
 from torch.utils.tensorboard import SummaryWriter
 from efficientnet import StripEfficientNet
-
+from MIL import SimpleMIL
 
 def val_model(model, val_dataloader):
 
-    model.model.eval()
+    model.eval()
 
     val_loss = .0
     val_acc = .0
@@ -42,8 +42,8 @@ def val_model(model, val_dataloader):
 
 def train_model(model, criterion, optimizer, train_dataloader, val_dataloader, num_epochs, log_writer=None):
     for epoch in range(num_epochs):
-        model.model.cuda()
-        model.model.train()
+        model.cuda()
+        model.train()
         step = 0
 
         iterator = tqdm(train_dataloader)
@@ -81,13 +81,15 @@ if __name__ == "__main__":
     train_dataset = StripDataset({"n_images": 16}, train)
     val_dataset = StripDataset({"n_images": 16}, val)
 
-    train_dataloader = DataLoader(train_dataset, batch_size=1, num_workers=8)
-    val_dataloader = DataLoader(val_dataset, batch_size=1, num_workers=8)
-    model = StripEfficientNet("efficientnet-b4", False, None, in_channels=48, num_classes=2)
-    writer = SummaryWriter("../train_log/efficientnet_b4")
+    train_dataloader = DataLoader(train_dataset, batch_size=1, num_workers=6)
+    val_dataloader = DataLoader(val_dataset, batch_size=1, num_workers=4)
+    # model = StripEfficientNet("efficientnet-b4", False, None, in_channels=48, num_classes=2)
+    model = SimpleMIL(model_name="tf_efficientnet_b4_ns")
+
+    writer = SummaryWriter("../train_log/efficientnet_b4_test")
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.AdamW(model.model.parameters(), lr=1e-5)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-5)
 
     train_model(model=model,
                 criterion=criterion,
