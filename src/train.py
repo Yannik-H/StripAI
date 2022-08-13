@@ -1,17 +1,18 @@
-from torch import nn
-from torch.utils.data import Dataset, DataLoader
-from dataset import StripDataset
-from sklearn.model_selection import train_test_split
 import pandas as pd
-from tqdm import tqdm
-from torch.optim import lr_scheduler
 import torch
+from sklearn.model_selection import train_test_split
+from torch import nn
+from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
-from efficientnet import StripEfficientNet
+from tqdm import tqdm
+
 from MIL import SimpleMIL
+from dataset import StripDataset
+from original_dataset import ImgDataset
+from CoAtNet import CoAtNet
+
 
 def val_model(model, val_dataloader):
-
     model.eval()
 
     val_loss = .0
@@ -74,19 +75,23 @@ def train_model(model, criterion, optimizer, train_dataloader, val_dataloader, n
 
 
 if __name__ == "__main__":
-
     train_csv = pd.read_csv("../data/train.csv")
     train, val = train_test_split(train_csv, test_size=0.2, random_state=66)
 
-    train_dataset = StripDataset({"n_images": 16}, train)
-    val_dataset = StripDataset({"n_images": 16}, val)
+    # train_dataset = StripDataset({"n_images": 16}, train)
+    # val_dataset = StripDataset({"n_images": 16}, val)
+    train_dataset = ImgDataset(train, "../data/train_tiles/train_jpg/")
+    val_dataset = ImgDataset(val, "../data/train_tiles/train_jpg/")
 
     train_dataloader = DataLoader(train_dataset, batch_size=1, num_workers=6)
     val_dataloader = DataLoader(val_dataset, batch_size=1, num_workers=4)
     # model = StripEfficientNet("efficientnet-b4", False, None, in_channels=48, num_classes=2)
-    model = SimpleMIL(model_name="tf_efficientnet_b4_ns")
+    # model = SimpleMIL(model_name="tf_efficientnet_b4_ns")
+    num_blocks = [2, 2, 12, 28, 2]
+    channels = [64, 64, 128, 256, 512]
+    model = CoAtNet((512, 512), 3, num_blocks, channels, num_classes=2)
 
-    writer = SummaryWriter("../train_log/efficientnet_b4_test")
+    writer = SummaryWriter("../train_log/CoAtNet")
 
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-5)

@@ -1,6 +1,8 @@
 import torch.nn as nn
+import torch
 from timm import create_model
 from torchsummary import summary
+from efficientnet_pytorch import EfficientNet
 
 
 class Flatten(nn.Module):
@@ -31,6 +33,8 @@ class SimpleMIL(nn.Module):
             num_classes=num_classes)
         enc_type = self.encoder.__class__.__name__
         feature_dim = self.encoder.get_classifier().in_features
+        # self.encoder = EfficientNet.from_name(model_name, num_classes=num_classes, image_size=(1024,1024))
+        # feature_dim = self.encoder._fc.in_features
         self.head = nn.Sequential(
             nn.AdaptiveMaxPool2d(1), Flatten(),
             nn.Linear(feature_dim, 256), nn.ReLU(inplace=True),
@@ -40,8 +44,19 @@ class SimpleMIL(nn.Module):
     def forward(self, x):
         # x: bs x N x C x W x W
         bs, _, ch, w, h = x.shape
-        x = x.view(bs * self.num_instances, ch, w, h)  # x: N bs x C x W x W
-        x = self.encoder.forward_features(x)  # x: N bs x C' x W' x W'
+        # x = x.view(bs * self.num_instances, ch, w, h)  # x: N bs x C x W x W
+        # x = self.encoder.forward_features(x)  # x: N bs x C' x W' x W'
+
+        temp_tensors = None
+        for i in range(self.num_instances):
+            if temp_tensors is None:
+                tile = x[:, i, :, :, :]
+                temp_tensors = self.encoder.forward_features(tile)
+            else:
+                torch.cat([temp_tensors, self.encoder.forward_features(tile)], dim=0)
+            # temp_tensors.append(self.encoder.extract_features(x[:, i, :, :, :].view(bs, ch, w, h)))
+
+
 
         # Concat and pool
         bs2, ch2, w2, h2 = x.shape
@@ -54,7 +69,7 @@ class SimpleMIL(nn.Module):
 
 if __name__ == "__main__":
 
-    mil = SimpleMIL(model_name="tf_efficientnet_b4_ns")
+    mil = SimpleMIL(model_name="resnet18")
 
     print("test")
 
