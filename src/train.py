@@ -5,6 +5,8 @@ from torch import nn
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
+from torch.optim.lr_scheduler import CosineAnnealingLR,CosineAnnealingWarmRestarts,StepLR
+from sklearn.model_selection import StratifiedKFold
 
 from MIL import SimpleMIL
 from dataset import StripDataset
